@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PropertyReviewerType {
+  LESSOR
+  TENANT
+}
+
+model User {
+  id                String     @id @default(uuid())
+  email             String     @unique
+  firstName         String
+  lastName          String
+  password          String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  Comments          Comment[]
+  RentedProperties  Property[] @relation(name: "propertyTenant")
+  OwnedProperties   Property[] @relation(name: "propertyLessor")
+  Rating            Rating[]
+  CreatedProperties Property[]
+}
+
+model Comment {
+  id              Int       @id @default(autoincrement())
+  text            String
+  user            User      @relation(fields: [userId], references: [id])
+  userId          String
+  ParentComment   Comment?  @relation("CommentToComment", fields: [parentCommentId], references: [id])
+  parentCommentId Int?
+  Rating          Rating?   @relation(fields: [ratingId], references: [id])
+  ratingId        Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  Property        Property? @relation(fields: [propertyId], references: [id])
+  propertyId      String?
+  SubComments     Comment[] @relation("CommentToComment")
+}
+
+model Property {
+  id            String    @id @default(uuid())
+  address       String
+  floorNumber   Int
+  flatNumber    Int
+  xCoordinate   Float
+  yCoordinate   Float
+  avarageRating Float     @default(0)
+  creator       User      @relation(fields: [creatorId], references: [id])
+  creatorId     String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  Lessors       User[]    @relation(name: "propertyLessor")
+  Tenants       User[]    @relation(name: "propertyTenant")
+  Comments      Comment[]
+  Ratings       Rating[]
+  buildingId    Int?
+}
+
+model Rating {
+  id           Int                  @id @default(autoincrement())
+  title        String
+  description  String
+  rating       Float
+  viewCount    Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  reviewer     User                 @relation(fields: [reviewerId], references: [id])
+  reviewerId   String
+  reviewerType PropertyReviewerType
+  Property     Property             @relation(fields: [propertyId], references: [id])
+  images       String[]
+  propertyId   String
+  Comment      Comment[]
+}
+
+model City {
+  name     String
+  code     String     @id
+  District District[]
+}
+
+model District {
+  name   String
+  code   String @id
+  City   City   @relation(fields: [cityId], references: [code])
+  cityId String
+  Town   Town[]
+}
+
+model Town {
+  name          String
+  code          String         @id
+  District      District       @relation(fields: [districtCode], references: [code])
+  districtCode  String
+  Neighborhoods Neighborhood[]
+}
+
+model Neighborhood {
+  name     String
+  code     String   @id
+  Town     Town     @relation(fields: [townCode], references: [code])
+  townCode String
+  Streets  Street[]
+}
+
+model Street {
+  name             String
+  code             String       @id
+  Neighborhood     Neighborhood @relation(fields: [neighborhoodCode], references: [code])
+  neighborhoodCode String
+  Building         Building[]
+}
+
+model Building {
+  name       String
+  code       String  @id
+  Street     Street  @relation(fields: [streetCode], references: [code])
+  streetCode String
+  Floor      Floor[]
+}
+
+model Floor {
+  name         String
+  code         String   @id
+  Building     Building @relation(fields: [buildingCode], references: [code])
+  buildingCode String
+}
